@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Insight Engine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 20px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Review Insight Engine</h1>
+        <textarea id="review" placeholder="Paste a Yelp review here"></textarea>
+        <button onclick="processReview()">Submit</button>
+        <div id="results" class="results"></div>
+    </div>
+    <script>
+        async function processReview() {
+            const reviewText = document.getElementById('review').value.trim();
+            const resultsDiv = document.getElementById('results');
+
+            // Clear previous results
+            resultsDiv.innerHTML = '';
+
+            if (!reviewText) {
+                resultsDiv.innerHTML = '<p class="error">Please enter a review!</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<p>Processing...</p>';
+
+            try {
+                const response = await fetch('http://127.0.0.1:8001/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: reviewText,
+                    }),
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to process the review. Please try again.');
+                }
+
+                const data = await response.json();
+                const processingTime = data.metadata?.processing_time_s ?? 'N/A'; // Safely access and provide fallback
+                resultsDiv.innerHTML = `
+                    <h3>Results</h3>
+                    <p><strong>Sentiment:</strong> ${data.sentiment.label} (${(data.sentiment.score * 100).toFixed(2)}%)</p>
+                    <p><strong>Explanation:</strong> ${data.sentiment.explanation}</p>
+                    <p><strong>Summary:</strong> ${data.summary}</p>
+                    <p><strong>Tags:</strong> ${data.entities.keywords?.join(', ') || 'No tags available'}</p>
+                    <p><strong>Processing Time:</strong> ${processingTime} s</p>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="error">${error.message}</p>`;
+            }
+        }
+
+    </script>
+</body>
+</html>
